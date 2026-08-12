@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xex>
+  <format>
+    <compressed/>
+  </format>
+  <mediatypes>
+    <flash/>
+  </mediatypes>
+  <version major="1" minor="0" build="0x0001" qfe="0"/>
+  <baseaddr addr="0x82000000"/>
+</xex>

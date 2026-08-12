@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release Retail|Xbox 360">
+      <Configuration>Release Retail</Configuration>
+      <Platform>Xbox 360</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{7A3C1F2E-9B4D-4E2A-8C6F-1D2E3F4A5B6C}</ProjectGuid>
+    <Keyword>Xbox360Proj</Keyword>
+    <ProjectName>application</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release Retail|Xbox 360'">
+    <!-- Standalone launchable .xex, NOT a DashLaunch plugin - this is the
+         difference from hiddriver.vcxproj (ConfigurationType=DynamicLibrary,
+         /dll link flag, <sysdll/> in xex.xml). See ARCHITECTURE.md. -->
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release Retail|Xbox 360'">
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release Retail|Xbox 360'">
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>2010-01</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release Retail|Xbox 360'">
+    <!-- XexUtils/src et XexUtils/include ne sont PAS ajoutes ici, contrairement
+         a un premier essai (voir PROJECT_NOTES.md, 2026-08-01, "vraie cause
+         de la cascade d'erreurs cmath") : XexUtils/src/Math.h porte le meme
+         nom que le math.h standard, et le systeme de fichiers Windows etant
+         insensible a la casse, l'ajouter ici faisait resoudre TOUS les
+         #include <math.h>/<cmath> du projet (rapidjson, ImGui, la libc du
+         XDK...) vers ce fichier au lieu du vrai math.h du SDK - d'ou la
+         cascade d'erreurs "acosf n'est pas membre de global namespace" dans
+         des fichiers qui n'ont rien a voir avec XexUtils. main.cpp inclut
+         desormais Input.h/Xam.h par chemin relatif explicite
+         (..\XexUtils\src\Input.h), qui n'a pas ce probleme (voir main.cpp). -->
+    <IncludePath>..\hiddriver\xkelib;..\hiddriver;.\;$(IncludePath)</IncludePath>
+    <LinkIncremental>false</LinkIncremental>
+    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
+    <RemoteRoot>HDD:\X360RemapStudio\</RemoteRoot>
+    <ImageXexOutput>$(OutDir)X360RemapStudio.xex</ImageXexOutput>
+    <OutputFile>$(OutDir)X360RemapStudio$(TargetExt)</OutputFile>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release Retail|Xbox 360'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\hiddriver\xkelib;..\hiddriver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <Optimization>Full</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <PreprocessorDefinitions>NDEBUG;_XBOX;LTCG</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <ExceptionHandling>false</ExceptionHandling>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderOutputFile>$(OutDir)$(ProjectName).pch</PrecompiledHeaderOutputFile>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>..\hiddriver\xkelib</AdditionalLibraryDirectories>
+      <!-- xkelib.lib retire d'ici le 2026-08-01 (etait copie du pattern
+           hiddriver.vcxproj, qui EN A besoin car hiddriver.xex est un plugin
+           DashLaunch qui hooke le D3D9 du xam.xex DEJA EN COURS D'EXECUTION -
+           application.xex n'est pas dans ce cas, c'est un .xex autonome qui
+           cree son propre device D3D9 independant). Cause reelle d'une
+           erreur de link (LNK2005, "already defined") : xkelib.lib fournit
+           SA PROPRE copie de D3DDevice_SetStreamSource/CreateVertexBuffer/
+           DrawIndexedVertices/etc. (des forwarders vers le device du
+           processus hote, utiles a un plugin, inutiles et en conflit ici),
+           qui entrait en collision avec les vraies implementations de
+           d3d9.lib. Verifie (recherche dans le vrai code source de
+           ClementDreptin/XexUtils) que rien de ce que ce projet utilise
+           (Input::GetInput -> XInputGetState/XInputGetKeystroke standard ;
+           Xam::XNotify -> ResolveExport = GetModuleHandle+GetProcAddress a
+           l'execution, aucune dependance de lien) n'a besoin de xkelib.lib -
+           seul usb.h/mapping.h/main.cpp l'avaient hérité par copier-coller
+           du .vcxproj du plugin, jamais reellement utilise (aucun fichier
+           source de application/ ne le reference, verifie par recherche).
+           d3dx9.lib retire a nouveau le 2026-08-01 : D3DXCompileShader (qui
+           en avait besoin) a ete abandonne suite a un echec de link (26
+           symboles internes a d3dx9.lib non resolus - voir
+           third_party\imgui\shaders\README.md et PROJECT_NOTES.md) - les
+           shaders ImGui sont desormais precompiles hors ligne, plus besoin
+           de d3dx9.lib du tout. -->
+      <AdditionalDependencies>d3d9.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <SetChecksum>true</SetChecksum>
+      <ProgramDatabaseFile>$(ProjectDir)$(Configuration)application.pdb</ProgramDatabaseFile>
+    </Link>
+    <ImageXex>
+      <ConfigurationFile>xex.xml</ConfigurationFile>
+    </ImageXex>
+    <Deploy>
+      <DeploymentType>CopyToHardDrive</DeploymentType>
+    </Deploy>
+    <Deploy>
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <Progress>true</Progress>
+      <ForceCopy>true</ForceCopy>
+    </Deploy>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="config_writer.h" />
+    <ClInclude Include="input_state_reader.h" />
+    <ClInclude Include="wizard_session.h" />
+    <ClInclude Include="i18n.h" />
+    <ClInclude Include="theme.h" />
+    <ClInclude Include="font_data_inter.h" />
+    <ClInclude Include="donation_links.h" />
+    <ClInclude Include="..\hiddriver\mapping.h" />
+    <ClInclude Include="..\hiddriver\mapping_assistant.h" />
+    <ClInclude Include="..\hiddriver\known_titles.h" />
+    <ClInclude Include="..\hiddriver\known_devices.h" />
+    <ClInclude Include="..\hiddriver\mouse_calibration.h" />
+    <ClInclude Include="calibration_session.h" />
+    <ClInclude Include="..\hiddriver\usb.h" />
+    <ClInclude Include="third_party\imgui\imgui_impl_dx9_xenon.h" />
+    <ClInclude Include="third_party\imgui\imgui.h" />
+    <ClInclude Include="third_party\imgui\imgui_internal.h" />
+    <ClInclude Include="third_party\imgui\imconfig.h" />
+    <!-- Microcode Xenon precompile des shaders ImGui (voir
+         third_party\imgui\shaders\README.md) - PLACEHOLDERS contenant un
+         #error tant qu'ils n'ont pas ete regeneres a partir des .hlsl
+         ci-dessous par l'outil de compilation HLSL du XDK, cote
+         utilisateur. Inclus directement par imgui_impl_dx9_xenon.cpp. -->
+    <ClInclude Include="third_party\imgui\shaders\imgui_vs.h" />
+    <ClInclude Include="third_party\imgui\shaders\imgui_ps.h" />
+    <!-- XexUtils (vendorise dans hiddriver360-master\XexUtils\, voir
+         ARCHITECTURE.md section "XexUtils"). Seuls les headers reellement
+         inclus depuis main.cpp sont listes ici. -->
+    <ClInclude Include="..\XexUtils\src\Input.h" />
+    <ClInclude Include="..\XexUtils\src\Xam.h" />
+    <!-- Filesystem.h/.cpp ajoutes le 2026-08-01 (voir PROJECT_NOTES.md,
+         "HDD: introuvable depuis application.xex") : XexUtils::Fs::MountHdd()
+         est necessaire AVANT tout acces a "HDD:\..." depuis ce binaire -
+         contrairement a hiddriver.xex (plugin DashLaunch, tourne DANS le
+         processus xam.xex du dashboard, qui a deja "hdd:" mappe en tant que
+         lien symbolique SYSTEME), application.xex est un titre lance de
+         maniere independante, avec son propre namespace d'objets prive - il
+         n'herite d'aucun mapping "HDD:" et doit le creer lui-meme. -->
+    <ClInclude Include="..\XexUtils\src\Filesystem.h" />
+    <ClInclude Include="..\XexUtils\src\Kernel.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="config_writer.cpp" />
+    <ClCompile Include="input_state_reader.cpp" />
+    <ClCompile Include="wizard_session.cpp" />
+    <ClCompile Include="calibration_session.cpp" />
+    <ClCompile Include="i18n.cpp" />
+    <ClCompile Include="theme.cpp" />
+    <ClCompile Include="font_data_inter.cpp" />
+    <ClCompile Include="donation_links.cpp" />
+    <ClCompile Include="third_party\imgui\imgui_impl_dx9_xenon.cpp" />
+    <!-- Coeur Dear ImGui v1.72b (retrograde depuis v1.90.9 le 2026-08-01,
+         voir ARCHITECTURE.md "Rendu : Dear ImGui" et
+         imgui_impl_dx9_xenon.h/.cpp pour le pourquoi complet : le toolset
+         XDK Xbox 360 ne supporte pas les enums avant-declares a type
+         explicite ni enum class, que v1.90.9 utilise dans son API publique)
+         - compile sans erreur en C++03 STRICT (g++ -std=c++03, pas juste
+         C++14) dans un environnement portable (g++/Linux) avant d'etre
+         ajoute ici, voir third_party\imgui\VENDORING.md. -->
+    <ClCompile Include="third_party\imgui\imgui.cpp" />
+    <ClCompile Include="third_party\imgui\imgui_draw.cpp" />
+    <ClCompile Include="third_party\imgui\imgui_widgets.cpp" />
+    <!-- imgui_tables.cpp : fichier de la v1.90.9 abandonnee, n'existe pas en
+         v1.72b (les tables sont une fonctionnalite plus recente d'ImGui) -
+         PAS utilise, retire de la compilation. Le fichier lui-meme n'a pas
+         pu etre supprime du disque (meme limitation git deja documentee
+         dans PROJECT_NOTES.md), laisse en place mais inerte. -->
+    <ClCompile Include="..\hiddriver\mapping.cpp">
+      <ObjectFileName>$(IntDir)mapping_app.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\hiddriver\mapping_assistant.cpp">
+      <ObjectFileName>$(IntDir)mapping_assistant_app.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\hiddriver\known_titles.cpp">
+      <ObjectFileName>$(IntDir)known_titles_app.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\hiddriver\mouse_calibration.cpp">
+      <ObjectFileName>$(IntDir)mouse_calibration_app.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\hiddriver\known_devices.cpp">
+      <ObjectFileName>$(IntDir)known_devices_app.obj</ObjectFileName>
+    </ClCompile>
+    <!-- XexUtils - compile directement les .cpp necessaires plutot qu'une
+         ProjectReference vers XexUtils.vcxproj (voir note plus bas : ce
+         projet complet requiert BearSSL pour Http/Socket, indisponible dans
+         mon bac a sable - voir ARCHITECTURE.md). Ce sous-ensemble (Input +
+         Xam + leurs dependances directes Formatter/General/Log) ne touche
+         jamais a Http.h/Socket.h/TlsSession.h, donc aucune dependance
+         BearSSL n'entre dans cette compilation - verifie en lisant chaque
+         #include de la chaine (Input.cpp -> Memory.h [header-only] ->
+         Kernel.h/Xam.h ; Xam.cpp -> Formatter.h/.cpp, General.h/.cpp ->
+         Memory.h ; toutes dependent aussi de Log.cpp via pch.h). ObjectFileName
+         distinct pour eviter toute collision si XexUtils.vcxproj est ajoute
+         separement plus tard pour d'autres modules (Filesystem, Detour...). -->
+    <ClCompile Include="..\XexUtils\src\Input.cpp">
+      <ObjectFileName>$(IntDir)XexUtils_Input.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\XexUtils\src\Xam.cpp">
+      <ObjectFileName>$(IntDir)XexUtils_Xam.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\XexUtils\src\Formatter.cpp">
+      <ObjectFileName>$(IntDir)XexUtils_Formatter.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\XexUtils\src\General.cpp">
+      <ObjectFileName>$(IntDir)XexUtils_General.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\XexUtils\src\Log.cpp">
+      <ObjectFileName>$(IntDir)XexUtils_Log.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\XexUtils\src\Filesystem.cpp">
+      <ObjectFileName>$(IntDir)XexUtils_Filesystem.obj</ObjectFileName>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="xex.xml" />
+    <None Include="third_party\imgui\shaders\README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Compilation des shaders ImGui via fxc.exe (compilateur HLSL du XDK
+         Xbox 360, confirme le 2026-08-01 : "Microsoft (R) D3DX9 Shader
+         Compiler 2.0.21256.0 Xbox 360", chemin confirme par l'utilisateur -
+         voir PROJECT_NOTES.md, "Sixieme build reel"). Pas d'element de
+         compilation HLSL natif dans cette installation de Visual Studio
+         (liste des types d'element verifiee cote utilisateur : pas
+         d'"Xbox 360 HLSL Compiler"/"Effect Compiler Tool" - seulement les
+         types generiques + "Custom Build Tool", utilise ici). S'execute
+         automatiquement a chaque build (MSBuild compare la date du .hlsl a
+         celle du .h de sortie) - remplace le placeholder #error par le
+         vrai microcode compile, aucune etape manuelle requise une fois ce
+         wiring en place. -->
+    <CustomBuild Include="third_party\imgui\shaders\imgui_vs.hlsl">
+      <!-- /Zpr (empaquetage des matrices en LIGNES) ajoute le 2026-08-01 :
+           sans cette option, fxc empaquette ProjectionMatrix en COLONNES
+           dans c0-c3 (confirme dans le commentaire genere par fxc lui-meme,
+           "defconst ProjectionMatrix, float, matrix_columns, [4, 4], c0-3")
+           - alors que ImGui_ImplDX9_SetupRenderState (imgui_impl_dx9_xenon.cpp)
+           remplit mat_projection[16] et appelle SetVertexShaderConstantF en
+           supposant un empaquetage par LIGNES. Ce decalage corrompait le
+           calcul de position de chaque sommet - cause reelle confirmee du
+           rendu "ecran quasi noir, fine ligne bleue" observe au premier
+           lancement (voir PROJECT_NOTES.md, "Jalon 3"). -->
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release Retail|Xbox 360'">"C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\fxc.exe" /nologo /Zpr /Tvs_2_0 /Emain /Fh"third_party\imgui\shaders\imgui_vs.h" /Vng_ImGuiVertexShader "third_party\imgui\shaders\imgui_vs.hlsl"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release Retail|Xbox 360'">third_party\imgui\shaders\imgui_vs.h</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release Retail|Xbox 360'">Compilation du vertex shader ImGui (fxc.exe, cible vs_2_0)</Message>
+    </CustomBuild>
+    <CustomBuild Include="third_party\imgui\shaders\imgui_ps.hlsl">
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release Retail|Xbox 360'">"C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\fxc.exe" /nologo /Tps_2_0 /Emain /Fh"third_party\imgui\shaders\imgui_ps.h" /Vng_ImGuiPixelShader "third_party\imgui\shaders\imgui_ps.hlsl"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release Retail|Xbox 360'">third_party\imgui\shaders\imgui_ps.h</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release Retail|Xbox 360'">Compilation du pixel shader ImGui (fxc.exe, cible ps_2_0)</Message>
+    </CustomBuild>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
