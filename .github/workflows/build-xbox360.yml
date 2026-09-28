@@ -1,7 +1,8 @@
 name: Build Xbox 360
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
 
 jobs:
   build:
